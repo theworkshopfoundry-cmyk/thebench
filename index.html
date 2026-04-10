@@ -1,35 +1,517 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>The Bench</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-body { font-family: system-ui; max-width: 600px; margin: 50px auto; padding: 20px; }
-h1 { color: #333; }
-input, button { padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; }
-button { background: #007bff; color: white; border: none; cursor: pointer; }
-ul { list-style: none; padding: 0; }
-li { background: #f0f0f0; margin: 5px 0; padding: 10px; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Forge — Workbench</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --accent: #58a6ff;
+      --success: #3fb950;
+      --warning: #d29922;
+      --danger: #f85149;
+    }
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* Mobile-first layout */
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    header h1 { font-size: 18px; color: var(--accent); }
+    
+    .status-dot {
+      width: 8px; height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+    }
+    
+    .status { font-size: 12px; color: #8b949e; }
+    
+    /* Main content area */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    /* Chat area */
+    .chat-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .message {
+      padding: 10px 14px;
+      border-radius: 8px;
+      max-width: 85%;
+      line-height: 1.5;
+    }
+    
+    .message.user {
+      background: var(--accent);
+      color: #fff;
+      align-self: flex-end;
+    }
+    
+    .message.ai {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      align-self: flex-start;
+    }
+    
+    .input-area {
+      padding: 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+    }
+    
+    .input-area input {
+      flex: 1;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 14px;
+    }
+    
+    .input-area input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    
+    .input-area button {
+      padding: 12px 20px;
+      border-radius: 8px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    
+    .input-area button:hover { opacity: 0.9; }
+    
+    /* Panels (Skills, Tools, Apps) */
+    .panels {
+      display: none; /* Hidden on mobile initially */
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      max-height: 40vh;
+      overflow-y: auto;
+    }
+    
+    .panel {
+      display: none;
+      padding: 16px;
+    }
+    
+    .panel.active { display: block; }
+    
+    .panel h2 {
+      font-size: 16px;
+      margin-bottom: 12px;
+      color: var(--accent);
+    }
+    
+    .panel-item {
+      padding: 10px;
+      background: var(--bg);
+      border-radius: 6px;
+      margin-bottom: 8px;
+      border: 1px solid var(--border);
+    }
+    
+    .panel-item h3 { font-size: 14px; margin-bottom: 4px; }
+    .panel-item p { font-size: 12px; color: #8b949e; }
+    
+    .panel-item .status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      margin-top: 6px;
+    }
+    
+    .status-badge.enabled { background: var(--success); color: #fff; }
+    .status-badge.disabled { background: var(--border); color: #8b949e; }
+    
+    /* Bottom navigation */
+    .nav {
+      display: flex;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+    }
+    
+    .nav-btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      background: none;
+      color: #8b949e;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .nav-btn.active { color: var(--accent); }
+    .nav-btn span { font-size: 18px; }
+    
+    /* File browser */
+    .file-browser {
+      padding: 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .file-browser h3 {
+      font-size: 14px;
+      margin-bottom: 10px;
+      color: var(--accent);
+    }
+    
+    .file-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    
+    .file {
+      padding: 8px 12px;
+      background: var(--bg);
+      border-radius: 6px;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+    }
+    
+    .file:hover { border-color: var(--accent); }
+    
+    /* Output area */
+    .output {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      color: #7ee787;
+    }
+    
+    /* System info */
+    .system-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    
+    .sys-item {
+      padding: 8px;
+      background: var(--bg);
+      border-radius: 6px;
+      font-size: 12px;
+    }
+    
+    .sys-item label { color: #8b949e; display: block; margin-bottom: 4px; }
+    
+    /* Desktop */
+    @media (min-width: 768px) {
+      .app {
+        flex-direction: row;
+      }
+      
+      .sidebar {
+        width: 280px;
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+      }
+      
+      .main-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      .nav { display: none; }
+      .panels { 
+        display: block; 
+        max-height: none;
+        border-top: none;
+        border-left: 1px solid var(--border);
+        width: 280px;
+      }
+    }
+    
+    /* Utility */
+    .hidden { display: none !important; }
+  </style>
 </head>
 <body>
-<h1>🍳 The Bench</h1>
-<p>Your smart cookbook is loading...</p>
-<input id="ingredient" placeholder="Add ingredient (e.g., chicken)">
-<button onclick="addIngredient()">Add</button>
-<ul id="list"></ul>
-<script>
-const ingredients = [];
-function addIngredient() {
-  const input = document.getElementById('ingredient');
-  if(input.value) {
-    ingredients.push(input.value);
-    const li = document.createElement('li');
-    li.textContent = input.value;
-    document.getElementById('list').appendChild(li);
-    input.value = '';
-  }
-}
-</script>
+  <div class="app">
+    <!-- Desktop Sidebar -->
+    <aside class="sidebar hidden" id="sidebar">
+      <div class="file-browser">
+        <h3>📁 Files</h3>
+        <div class="file-list" id="fileList">
+          <div class="file">main.py</div>
+          <div class="file">app.js</div>
+          <div class="file">README.md</div>
+          <div class="file">config.json</div>
+        </div>
+      </div>
+      
+      <div class="panels" id="panels">
+        <div class="panel active" id="skillsPanel">
+          <h2>⚡ Skills</h2>
+          <div class="panel-item">
+            <h3>Web Search</h3>
+            <p>Search the web for information</p>
+            <span class="status-badge enabled">Enabled</span>
+          </div>
+          <div class="panel-item">
+            <h3>Browser</h3>
+            <p>Control browser automation</p>
+            <span class="status-badge enabled">Enabled</span>
+          </div>
+          <div class="panel-item">
+            <h3>Email</h3>
+            <p>Send and receive emails</p>
+            <span class="status-badge enabled">Enabled</span>
+          </div>
+          <div class="panel-item">
+            <h3>Discord</h3>
+            <p>Send messages to Discord</p>
+            <span class="status-badge enabled">Enabled</span>
+          </div>
+          <div class="panel-item">
+            <h3>Code Execute</h3>
+            <p>Run Python and shell code</p>
+            <span class="status-badge enabled">Enabled</span>
+          </div>
+        </div>
+        
+        <div class="panel" id="toolsPanel">
+          <h2>🔧 Tools</h2>
+          <div class="panel-item">
+            <h3>Firebase</h3>
+            <p>Firestore database access</p>
+            <span class="status-badge enabled">Connected</span>
+          </div>
+          <div class="panel-item">
+            <h3>Google Sheets</h3>
+            <p>Read/write spreadsheets</p>
+            <span class="status-badge enabled">Connected</span>
+          </div>
+          <div class="panel-item">
+            <h3>Google Drive</h3>
+            <p>File management</p>
+            <span class="status-badge enabled">Connected</span>
+          </div>
+          <div class="panel-item">
+            <h3>GitHub</h3>
+            <p>Repo access and CI/CD</p>
+            <span class="status-badge enabled">Connected</span>
+          </div>
+        </div>
+        
+        <div class="panel" id="appsPanel">
+          <h2>📱 Apps</h2>
+          <div class="panel-item">
+            <h3>🍳 Cookbook</h3>
+            <p>Recipe manager — click to open</p>
+          </div>
+          <div class="panel-item">
+            <h3>📝 Notes</h3>
+            <p>Quick notes and todos</p>
+          </div>
+          <div class="panel-item">
+            <h3>🔗 Link Vault</h3>
+            <p>Save and organize links</p>
+          </div>
+        </div>
+        
+        <div class="panel" id="systemPanel">
+          <h2>🔍 System</h2>
+          <div class="system-info">
+            <div class="sys-item">
+              <label>Platform</label>
+              <div>Heyron (Chris)</div>
+            </div>
+            <div class="sys-item">
+              <label>Session</label>
+              <div>Active</div>
+            </div>
+            <div class="sys-item">
+              <label>Model</label>
+              <div>minimax-m2.5</div>
+            </div>
+            <div class="sys-item">
+              <label>Memory</label>
+              <div id="memUsage">Loading...</div>
+            </div>
+          </div>
+          <button onclick="restartSession()" style="margin-top:12px;width:100%;padding:10px;background:var(--danger);color:#fff;border:none;border-radius:6px;cursor:pointer;">🔄 Restart Session</button>
+        </div>
+      </div>
+    </aside>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+      <header>
+        <h1>🔥 The Forge</h1>
+        <div class="status"><span class="status-dot"></span>Online</div>
+      </header>
+      
+      <main>
+        <div class="chat-container">
+          <div class="messages" id="messages">
+            <div class="message ai">Hey! I'm here. What do you want to build?</div>
+          </div>
+          
+          <div class="input-area">
+            <input type="text" id="userInput" placeholder="Tell me what to build..." autocomplete="off">
+            <button onclick="sendMessage()">Send</button>
+          </div>
+        </div>
+        
+        <div style="padding: 12px;">
+          <div style="font-size:12px;color:#8b949e;margin-bottom:6px;">📟 Output</div>
+          <div class="output" id="output">Output will appear here...</div>
+        </div>
+      </main>
+    </div>
+    
+    <!-- Mobile Navigation -->
+    <nav class="nav" id="mobileNav">
+      <button class="nav-btn active" onclick="showMobilePanel('chat')">
+        <span>💬</span>Chat
+      </button>
+      <button class="nav-btn" onclick="showMobilePanel('skills')">
+        <span>⚡</span>Skills
+      </button>
+      <button class="nav-btn" onclick="showMobilePanel('tools')">
+        <span>🔧</span>Tools
+      </button>
+      <button class="nav-btn" onclick="showMobilePanel('apps')">
+        <span>📱</span>Apps
+      </button>
+      <button class="nav-btn" onclick="showMobilePanel('system')">
+        <span>🔍</span>System
+      </button>
+    </nav>
+  </div>
+  
+  <script>
+    const messages = document.getElementById('messages');
+    const userInput = document.getElementById('userInput');
+    const output = document.getElementById('output');
+    
+    // Enter key sends
+    userInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+    
+    function sendMessage() {
+      const text = userInput.value.trim();
+      if (!text) return;
+      
+      // Add user message
+      addMessage('user', text);
+      userInput.value = '';
+      
+      // Simulate AI response (in real version, call OpenClaw API)
+      setTimeout(() => {
+        addMessage('ai', `I received: "${text}"\n\nBuilding this in the Workbench...`);
+        output.textContent = `> ${text}\n\n[Simulated response - real integration coming]`;
+      }, 500);
+    }
+    
+    function addMessage(role, text) {
+      const div = document.createElement('div');
+      div.className = `message ${role}`;
+      div.textContent = text;
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    }
+    
+    // Mobile panel switching
+    function showMobilePanel(panel) {
+      const navBtns = document.querySelectorAll('.nav-btn');
+      navBtns.forEach(btn => btn.classList.remove('active'));
+      event.target.closest('.nav-btn').classList.add('active');
+      
+      // Hide chat, show panel
+      if (panel === 'chat') {
+        document.querySelector('.chat-container').style.display = 'flex';
+        document.querySelector('.nav').nextElementSibling.style.display = 'none';
+      } else {
+        document.querySelector('.chat-container').style.display = 'none';
+        const panels = document.querySelector('.panels');
+        panels.style.display = 'block';
+        panels.classList.add('active');
+        
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.getElementById(panel + 'Panel').classList.add('active');
+      }
+    }
+    
+    function restartSession() {
+      if (confirm('Restart session? Current context will be cleared.')) {
+        output.textContent = 'Session restarted.';
+      }
+    }
+    
+    // Update memory usage (simulated)
+    document.getElementById('memUsage').textContent = '19.6 MB';
+  </script>
 </body>
 </html>
