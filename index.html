@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>The Bench</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body { font-family: system-ui; max-width: 600px; margin: 50px auto; padding: 20px; }
+h1 { color: #333; }
+input, button { padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+button { background: #007bff; color: white; border: none; cursor: pointer; }
+ul { list-style: none; padding: 0; }
+li { background: #f0f0f0; margin: 5px 0; padding: 10px; }
+</style>
+</head>
+<body>
+<h1>🍳 The Bench</h1>
+<p>Your smart cookbook is loading...</p>
+<input id="ingredient" placeholder="Add ingredient (e.g., chicken)">
+<button onclick="addIngredient()">Add</button>
+<ul id="list"></ul>
+<script>
+const ingredients = [];
+function addIngredient() {
+  const input = document.getElementById('ingredient');
+  if(input.value) {
+    ingredients.push(input.value);
+    const li = document.createElement('li');
+    li.textContent = input.value;
+    document.getElementById('list').appendChild(li);
+    input.value = '';
+  }
+}
+</script>
+</body>
+</html>
